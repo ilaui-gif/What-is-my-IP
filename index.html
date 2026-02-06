@@ -36,33 +36,42 @@
         const data = await response.json();
         document.getElementById('ip').textContent = data.ip;
         
-        // Speichere IP mit Zeitstempel im LocalStorage
-        const timestamp = new Date().toLocaleString('de-DE');
-        const ipEntry = {
-          ip: data.ip,
-          time: timestamp
-        };
-        
-        let ipList = JSON.parse(localStorage.getItem('ipList')) || [];
-        ipList.push(ipEntry);
-        localStorage.setItem('ipList', JSON.stringify(ipList));
+        // Speichere IP auf dem Server
+        try {
+          await fetch('/api/save-ip', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ ip: data.ip })
+          });
+        } catch (serverErr) {
+          console.log('Server erreichbar?', serverErr.message);
+        }
       } catch (err) {
         document.getElementById('ip').textContent = 'Fehler: ' + err;
       }
     }
 
     // Funktion zum Anzeigen aller IP-Adressen in der Konsole
-    function runIPshow() {
-      const ipList = JSON.parse(localStorage.getItem('ipList')) || [];
-      if (ipList.length === 0) {
-        console.log('Keine IP-Adressen gespeichert');
-        return;
+    async function runIPshow() {
+      try {
+        const response = await fetch('/api/get-ips');
+        const ipList = await response.json();
+        
+        if (ipList.length === 0) {
+          console.log('Keine IP-Adressen gespeichert');
+          return;
+        }
+        console.log('=== ALLE eingeloggten IP-Adressen ===');
+        ipList.forEach((entry, index) => {
+          console.log(`${index + 1}. IP: ${entry.ip} | Zeit: ${entry.time}`);
+        });
+        console.log(`Gesamt: ${ipList.length} Besuche`);
+      } catch (err) {
+        console.log('Fehler beim Abrufen der IPs:', err.message);
+        console.log('Stellen Sie sicher, dass der Server läuft: node server.js');
       }
-      console.log('=== Alle eingeloggten IP-Adressen ===');
-      ipList.forEach((entry, index) => {
-        console.log(`${index + 1}. IP: ${entry.ip} | Zeit: ${entry.time}`);
-      });
-      console.log(`Gesamt: ${ipList.length} Besuche`);
     }
 
     getPublicIP();
