@@ -29,52 +29,67 @@
 		<strong id="ip">Lade...</strong>
 	</div>
 
-	<script>
-		async function getPublicIP() {
-      try {
-        const response = await fetch('https://api.ipify.org?format=json');
-        const data = await response.json();
-        document.getElementById('ip').textContent = data.ip;
-        
-        // Speichere IP auf dem Server
-        try {
-          await fetch('/api/save-ip', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ ip: data.ip })
-          });
-        } catch (serverErr) {
-          console.log('Server erreichbar?', serverErr.message);
-        }
-      } catch (err) {
-        document.getElementById('ip').textContent = 'Fehler: ' + err;
-      }
-    }
+	<!-- Firebase SDK -->
+	<script type="module">
+		import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+		import { getDatabase, ref, push, get } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
 
-    // Funktion zum Anzeigen aller IP-Adressen in der Konsole
-    async function runIPshow() {
-      try {
-        const response = await fetch('/api/get-ips');
-        const ipList = await response.json();
-        
-        if (ipList.length === 0) {
-          console.log('Keine IP-Adressen gespeichert');
-          return;
-        }
-        console.log('=== ALLE eingeloggten IP-Adressen ===');
-        ipList.forEach((entry, index) => {
-          console.log(`${index + 1}. IP: ${entry.ip} | Zeit: ${entry.time}`);
-        });
-        console.log(`Gesamt: ${ipList.length} Besuche`);
-      } catch (err) {
-        console.log('Fehler beim Abrufen der IPs:', err.message);
-        console.log('Stellen Sie sicher, dass der Server läuft: node server.js');
-      }
-    }
+		// Ersetze dies mit deinen Firebase-Anmeldedaten
+		const firebaseConfig = {
+			apiKey: "AIzaSyBKr3EqR3FP1z2uQxYzK3Z5nJ8vL2mN9oP",
+			authDomain: "what-is-my-ip-8f3a0.firebaseapp.com",
+			databaseURL: "https://what-is-my-ip-8f3a0-default-rtdb.firebaseio.com",
+			projectId: "what-is-my-ip-8f3a0",
+			storageBucket: "what-is-my-ip-8f3a0.appspot.com",
+			messagingSenderId: "123456789012",
+			appId: "1:123456789012:web:abcdef1234567890"
+		};
 
-    getPublicIP();
+		const app = initializeApp(firebaseConfig);
+		const database = getDatabase(app);
+
+		window.getPublicIP = async function() {
+			try {
+				const response = await fetch('https://api.ipify.org?format=json');
+				const data = await response.json();
+				document.getElementById('ip').textContent = data.ip;
+
+				// Speichere IP in Firebase
+				const timestamp = new Date().toLocaleString('de-DE');
+				const ipsRef = ref(database, 'ips');
+				push(ipsRef, {
+					ip: data.ip,
+					time: timestamp
+				});
+			} catch (err) {
+				document.getElementById('ip').textContent = 'Fehler: ' + err;
+			}
+		}
+
+		window.runIPshow = async function() {
+			try {
+				const ipsRef = ref(database, 'ips');
+				const snapshot = await get(ipsRef);
+
+				if (!snapshot.exists()) {
+					console.log('Keine IP-Adressen gespeichert');
+					return;
+				}
+
+				const ipsData = snapshot.val();
+				const ipList = Object.values(ipsData);
+
+				console.log('=== ALLE eingeloggten IP-Adressen ===');
+				ipList.forEach((entry, index) => {
+					console.log(`${index + 1}. IP: ${entry.ip} | Zeit: ${entry.time}`);
+				});
+				console.log(`Gesamt: ${ipList.length} Besuche`);
+			} catch (err) {
+				console.log('Fehler beim Abrufen der IPs:', err.message);
+			}
+		}
+
+		getPublicIP();
 	</script>
 </body>
 
