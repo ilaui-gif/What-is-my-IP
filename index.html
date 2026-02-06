@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+	<meta charset="UTF-8">
+	<style>
+		body {
+			font-family: monospace;
+			background: #0f172a;
+			color: #38bdf8;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			height: 100vh;
+		}
+
+		.box {
+			background: #020617;
+			padding: 20px 30px;
+			border-radius: 8px;
+			box-shadow: 0 0 20px #38bdf8;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="box">
+		your IP-adress:<br>
+		<strong id="ip">Lade...</strong>
+	</div>
+
+	<script>
+		async function getPublicIP() {
+      try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        document.getElementById('ip').textContent = data.ip;
+        
+        // Speichere IP mit Zeitstempel im LocalStorage
+        const timestamp = new Date().toLocaleString('de-DE');
+        const ipEntry = {
+          ip: data.ip,
+          time: timestamp
+        };
+        
+        let ipList = JSON.parse(localStorage.getItem('ipList')) || [];
+        ipList.push(ipEntry);
+        localStorage.setItem('ipList', JSON.stringify(ipList));
+      } catch (err) {
+        document.getElementById('ip').textContent = 'Fehler: ' + err;
+      }
+    }
+
+    // Funktion zum Anzeigen aller IP-Adressen in der Konsole
+    function runIPshow() {
+      const ipList = JSON.parse(localStorage.getItem('ipList')) || [];
+      if (ipList.length === 0) {
+        console.log('Keine IP-Adressen gespeichert');
+        return;
+      }
+      console.log('=== Alle eingeloggten IP-Adressen ===');
+      ipList.forEach((entry, index) => {
+        console.log(`${index + 1}. IP: ${entry.ip} | Zeit: ${entry.time}`);
+      });
+      console.log(`Gesamt: ${ipList.length} Besuche`);
+    }
+
+    getPublicIP();
+	</script>
+</body>
+
+</html>
